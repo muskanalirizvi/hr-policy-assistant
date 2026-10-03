@@ -10,3 +10,4 @@ pymongo
 certifi
 mcp
 langchain-mcp-adapters
+slack_sdk
