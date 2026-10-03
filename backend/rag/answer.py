@@ -4,7 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from rag.retriever import get_vector_store, retrieve
 
 load_dotenv()
-logging.getLogger("google_genai").setLevel(logging.WARNING)  # INFO wale logs band
+logging.getLogger("google_genai").setLevel(logging.ERROR) # INFO wale logs band
 
 llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 
