@@ -8,3 +8,5 @@ fastembed
 flashrank
 pymongo
 certifi
+mcp
+langchain-mcp-adapters
