@@ -6,3 +6,5 @@ langchain-qdrant
 qdrant-client
 fastembed
 flashrank
+pymongo
+certifi
