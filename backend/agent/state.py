@@ -7,5 +7,6 @@ class AgentState(TypedDict, total=False):
     question: str
     employee_id: str  # UI se aata hai, LLM se nahi
     intent: Intent
-    answer: str
+    answer: str | None
     sources: list[str]
+    leave: dict  # extracted leave details

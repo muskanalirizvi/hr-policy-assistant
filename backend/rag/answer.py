@@ -15,6 +15,7 @@ If the excerpts do not contain the answer, reply with exactly: NOT_IN_POLICY
 Rules:
 - Be concise.
 - Cite the policy and section, e.g. (Leave Policy, 1. Annual Leave).
+- Reply in the same language as the question (English, Urdu or Roman Urdu).
 
 Policy excerpts:
 {context}
