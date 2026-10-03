@@ -1,12 +1,11 @@
 import logging
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 from rag.retriever import get_vector_store, retrieve
+from agent.llm import llm, to_text
 
 load_dotenv()
-logging.getLogger("google_genai").setLevel(logging.ERROR) # INFO wale logs band
+logging.getLogger("google_genai").setLevel(logging.ERROR) 
 
-llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 
 MIN_SCORE = 0.01  # isse kam score wale chunks bilkul irrelevant hain
 
@@ -21,13 +20,6 @@ Policy excerpts:
 {context}
 
 Question: {question}"""
-
-
-def to_text(content):
-    # Kuch Gemini versions content ko list of blocks mein dete hain
-    if isinstance(content, list):
-        return "".join(b.get("text", "") if isinstance(b, dict) else str(b) for b in content)
-    return content
 
 
 def answer(store, question):

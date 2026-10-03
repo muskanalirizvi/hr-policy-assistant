@@ -2,14 +2,13 @@ import logging
 import os
 from dotenv import load_dotenv
 from tavily import TavilyClient
-from langchain_google_genai import ChatGoogleGenerativeAI
+from agent.llm import llm, to_text
 
 load_dotenv()
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("google_genai").setLevel(logging.ERROR)
 
 tavily = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
-llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 
 DISCLAIMER = (
     "⚠️ This is general information from the web, not official Acme Corp policy. "
@@ -24,12 +23,6 @@ Search results:
 {results}
 
 Question: {question}"""
-
-
-def to_text(content):
-    if isinstance(content, list):
-        return "".join(b.get("text", "") if isinstance(b, dict) else str(b) for b in content)
-    return content
 
 
 def web_answer(question):
