@@ -9,6 +9,7 @@ from agent.tools import call_tool
 from agent.web_search import web_answer
 from rag.answer import answer as rag_answer
 from rag.retriever import get_vector_store
+from langgraph.types import interrupt
 
 store = get_vector_store()
 
@@ -38,8 +39,11 @@ router_llm = llm.with_structured_output(Route)
 
 
 def router_node(state: AgentState) -> dict:
+    reset = {"answer": None, "sources": [], "confirmed": False}
+    if state.get("awaiting_leave"):
+        return {**reset, "intent": "leave_request"}
     route = router_llm.invoke(ROUTER_PROMPT.format(question=state["question"]))
-    return {"intent": route.intent}
+    return {**reset, "intent": route.intent}
 
 
 # ---------- Policy (RAG) + Web ----------
@@ -107,18 +111,87 @@ async def leave_extract_node(state: AgentState) -> dict:
     d = await extract_llm.ainvoke(EXTRACT_PROMPT.format(
         today=today.isoformat(), weekday=today.strftime("%A"), question=state["question"]
     ))
-    if d.start_date and not d.end_date:
-        d.end_date = d.start_date
+    new = {k: v for k, v in d.model_dump().items() if v}
+    # Agar pichle message mein kuch details aa chuki thi, unhe saath milao
+    prev = (state.get("leave") or {}) if state.get("awaiting_leave") else {}
+    leave = {**prev, **new}
+    if leave.get("start_date") and not leave.get("end_date"):
+        leave["end_date"] = leave["start_date"]
 
     missing = []
-    if not d.leave_type:
+    if not leave.get("leave_type"):
         missing.append("the leave type (annual, sick or casual)")
-    if not d.start_date:
+    if not leave.get("start_date"):
         missing.append("the dates")
     if missing:
-        return {"leave": d.model_dump(), "answer": f"Sure, I can help with that. Please tell me {' and '.join(missing)}."}
-    return {"leave": d.model_dump(), "answer": None}  # sab mil gaya → confirm step (6c)
+        return {"leave": leave, "awaiting_leave": True,
+                "answer": f"Sure, I can help with that. Please tell me {' and '.join(missing)}."}
+    return {"leave": leave, "awaiting_leave": False, "answer": None}
 
+
+def _leave_args(state: AgentState) -> dict:
+    l = state["leave"]
+    return {
+        "employee_id": state["employee_id"],  # state se, LLM se nahi
+        "leave_type": l["leave_type"],
+        "start_date": l["start_date"],
+        "end_date": l["end_date"],
+        "reason": l.get("reason") or "",
+    }
+
+
+async def leave_validate_node(state: AgentState) -> dict:
+    preview = await call_tool("create_leave_request", {**_leave_args(state), "dry_run": True})
+    if "error" in preview:
+        return {"answer": f"I can't submit this request: {preview['error']}", "leave": {}}
+    return {"leave_preview": preview}
+
+def days_text(n) -> str:
+    return f"{n} working day" + ("" if n == 1 else "s")
+
+YES_WORDS = {"yes", "y", "haan", "han", "ha", "ji", "jee", "ok", "okay", "sure", "confirm", "submit"}
+
+
+def confirm_node(state: AgentState) -> dict:
+    p = state["leave_preview"]
+    summary = (
+        "Please confirm your leave request:\n"
+        f"• Type: {p['leave_type'].capitalize()} leave\n"
+        f"• Dates: {p['start_date']} → {p['end_date']} ({days_text(p['working_days'])})\n"
+        f"• Reason: {p['reason'] or '-'}\n"
+    )
+    if p.get("needs_hod_approval"):
+        summary += "• Note: over 10 working days, needs Head of Department approval\n"
+    summary += "\nShall I submit it? (yes / no)"
+
+    reply = interrupt(summary)  # ⏸ graph yahan rukta hai, user ke jawab ka intezaar
+
+    words = str(reply).lower().replace(",", " ").split()
+    if any(w in YES_WORDS for w in words):
+        return {"confirmed": True}
+    return {"confirmed": False, "leave": {}, "answer": "Okay, I've cancelled it. Nothing was submitted."}
+
+
+async def submit_leave_node(state: AgentState) -> dict:
+    req = await call_tool("create_leave_request", _leave_args(state))
+    if "error" in req:
+        return {"answer": f"I couldn't submit your request: {req['error']}", "leave": {}}
+
+    post = await call_tool("post_leave_request", {
+        "request_id": req["_id"],
+        "employee_name": req["employee_name"],
+        "leave_type": req["leave_type"],
+        "start_date": req["start_date"],
+        "end_date": req["end_date"],
+        "working_days": req["working_days"],
+        "reason": req["reason"],
+        "needs_hod_approval": req["needs_hod_approval"],
+    })
+    note = ("HR has been notified on Slack." if post.get("posted")
+            else "It's saved, but I couldn't notify HR on Slack. Please let them know directly.")
+    answer = (f"✅ Submitted! Your {req['leave_type']} leave request `{req['_id']}` "
+              f"({req['start_date']} → {req['end_date']}, {days_text(req['working_days'])}) is pending review. {note}")
+    return {"answer": answer, "leave": {}}
 
 # ---------- Off topic ----------
 OFF_TOPIC_REPLY = (
@@ -130,35 +203,3 @@ OFF_TOPIC_REPLY = (
 def off_topic_node(state: AgentState) -> dict:
     return {"answer": OFF_TOPIC_REPLY, "sources": []}
 
-
-# ---------- Test ----------
-async def main():
-    base = {"employee_id": "EMP003"}  # Sara, probation
-
-    print("\n=== policy ===")
-    print(policy_node({**base, "question": "Can I take annual leave during probation?"}))
-
-    print("\n=== policy → web fallback ===")
-    q = "What is the legal maternity leave in Pakistan?"
-    r = policy_node({**base, "question": q})
-    print("policy answer:", r["answer"])
-    if r["answer"] is None:
-        print(web_node({**base, "question": q})["answer"])
-
-    print("\n=== my_data (Roman Urdu) ===")
-    print((await my_data_node({**base, "question": "meri kitni chuttiyan bachi hain?"}))["answer"])
-
-    print("\n=== leave_extract (complete) ===")
-    print(await leave_extract_node({**base, "question": "I need annual leave from 19 to 21 October for a family trip"}))
-
-    print("\n=== leave_extract (missing type) ===")
-    print(await leave_extract_node({**base, "question": "mujhe agle Monday chutti chahiye"}))
-
-    print("\n=== off_topic ===")
-    print(off_topic_node(base)["answer"])
-
-    store.client.close()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

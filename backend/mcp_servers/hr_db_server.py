@@ -48,10 +48,11 @@ def working_days(start: date, end: date) -> int:
 
 @mcp.tool()
 def create_leave_request(
-    employee_id: str, leave_type: str, start_date: str, end_date: str, reason: str = ""
+    employee_id: str, leave_type: str, start_date: str, end_date: str, reason: str = "", dry_run: bool = False
 ) -> dict:
     """Create a leave request after checking it against Acme Corp leave policy.
-    leave_type must be annual, sick or casual. Dates must be in YYYY-MM-DD format."""
+    leave_type must be annual, sick or casual. Dates must be in YYYY-MM-DD format.
+    With dry_run=True, only validates and returns the preview without saving."""
     emp = db.employees.find_one({"_id": employee_id})
     if not emp:
         return {"error": f"Employee {employee_id} not found"}
@@ -95,6 +96,8 @@ def create_leave_request(
         "needs_hod_approval": days > 10,  # Leave Policy, 5. How to Apply
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    if dry_run:
+        return request
     db.leave_requests.insert_one(request)
     return request
 
