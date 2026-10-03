@@ -42,7 +42,8 @@ employees = [
     },
 ]
 
-db.employees.delete_many({})  # har run pe fresh data
+db.employees.delete_many({}) 
+db.leave_requests.delete_many({})  
 db.employees.insert_many(employees)
 
 print(f"Seeded {db.employees.count_documents({})} employees\n")

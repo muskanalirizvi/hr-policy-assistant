@@ -6,7 +6,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 async def main():
     client = MultiServerMCPClient({
         "hr_db": {
-            "command": sys.executable,  # venv wala python
+            "command": sys.executable,
             "args": ["mcp_servers/hr_db_server.py"],
             "transport": "stdio",
         }
@@ -14,15 +14,22 @@ async def main():
 
     tools = {t.name: t for t in await client.get_tools()}
     print("Tools:", list(tools))
+    create = tools["create_leave_request"]
 
-    print("\nEMP003 leave balance:")
-    print(await tools["get_leave_balance"].ainvoke({"employee_id": "EMP003"}))
+    cases = [
+        ("Valid request (Ayesha, 3 din)",
+         {"employee_id": "EMP001", "leave_type": "annual", "start_date": "2026-10-19", "end_date": "2026-10-21", "reason": "Family trip"}),
+        ("Probation (Sara, annual)",
+         {"employee_id": "EMP003", "leave_type": "annual", "start_date": "2026-10-19", "end_date": "2026-10-20"}),
+        ("Balance kam (Usman, 5 din, balance 2)",
+         {"employee_id": "EMP004", "leave_type": "annual", "start_date": "2026-10-19", "end_date": "2026-10-23"}),
+        ("Notice kam (Ayesha, kal ki casual)",
+         {"employee_id": "EMP001", "leave_type": "casual", "start_date": "2026-10-06", "end_date": "2026-10-06"}),
+    ]
 
-    print("\nEMP001 profile:")
-    print(await tools["get_employee_profile"].ainvoke({"employee_id": "EMP001"}))
-
-    print("\nGalat ID (EMP999):")
-    print(await tools["get_leave_balance"].ainvoke({"employee_id": "EMP999"}))
+    for label, args in cases:
+        result = await create.ainvoke(args)
+        print(f"\n{label}:\n  {result[0]['text']}")
 
 
 asyncio.run(main())
