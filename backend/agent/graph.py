@@ -37,8 +37,8 @@ for node in ["web", "my_data", "off_topic", "submit"]:
 graph = builder.compile(checkpointer=InMemorySaver())
 
 
-async def chat(thread_id: str, employee_id: str, message: str):
-    """Ek user message bhejo, agent ka jawab aur sources wapas lo."""
+async def chat(thread_id: str, employee_id: str, message: str) -> dict:
+    """Ek user message bhejo, agent ka jawab wapas lo."""
     config = {"configurable": {"thread_id": thread_id}}
     snapshot = await graph.aget_state(config)
 
@@ -47,19 +47,19 @@ async def chat(thread_id: str, employee_id: str, message: str):
     else:
         result = await graph.ainvoke({"question": message, "employee_id": employee_id}, config)
 
-    if "__interrupt__" in result:  # graph ruk gaya, confirmation maang raha hai
-        return result["__interrupt__"][0].value, []
-    return result.get("answer"), result.get("sources", [])
+    if "__interrupt__" in result:
+        return {"answer": result["__interrupt__"][0].value, "sources": [], "awaiting_confirmation": True}
+    return {"answer": result.get("answer") or "", "sources": result.get("sources", []),
+            "awaiting_confirmation": False}
 
 
-# ---------- Test: poori conversations ----------
 async def run(thread_id, employee_id, messages):
     print(f"\n{'=' * 15} {employee_id} {'=' * 15}")
     for m in messages:
-        answer, sources = await chat(thread_id, employee_id, m)
-        print(f"\n👤 {m}\n🤖 {answer}")
-        if sources:
-            print("   📎", sources)
+        r = await chat(thread_id, employee_id, m)
+        print(f"\n👤 {m}\n🤖 {r['answer']}")
+        if r["sources"]:
+            print("   📎", r["sources"])
 
 
 async def main():

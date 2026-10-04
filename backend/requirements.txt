@@ -13,3 +13,5 @@ langchain-mcp-adapters
 slack_sdk
 tavily-python
 langgraph
+fastapi
+uvicorn
