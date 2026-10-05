@@ -1,10 +1,10 @@
 import json
+import os
 import sys
 from contextlib import AsyncExitStack
 from pathlib import Path
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
-import os
 
 SERVERS_DIR = Path(__file__).resolve().parent.parent / "mcp_servers"
 
@@ -16,6 +16,12 @@ def _server(filename):
         "transport": "stdio",
         "env": dict(os.environ),  # Render pe MCP servers ko bhi env variables chahiye
     }
+
+
+client = MultiServerMCPClient({
+    "hr_db": _server("hr_db_server.py"),
+    "slack": _server("slack_server.py"),
+})
 
 _tools = None
 _stack = None
