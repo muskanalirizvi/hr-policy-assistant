@@ -17,7 +17,7 @@ mcp = FastMCP("acme-hr-db")
 @mcp.tool()
 def get_employee_profile(employee_id: str) -> dict:
     """Get an employee's profile: name, department, role, manager, join date, probation status and work mode."""
-    emp = db.employees.find_one({"_id": employee_id}, {"leave_balance": 0})
+    emp = db.employees.find_one({"_id": employee_id}, {"leave_balance": 0, "password_hash": 0})
     if not emp:
         return {"error": f"Employee {employee_id} not found"}
     return emp

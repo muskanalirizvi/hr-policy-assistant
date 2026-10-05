@@ -189,7 +189,7 @@ async def submit_leave_node(state: AgentState) -> dict:
     })
     note = ("HR has been notified on Slack." if post.get("posted")
             else "It's saved, but I couldn't notify HR on Slack. Please let them know directly.")
-    answer = (f"✅ Submitted! Your {req['leave_type']} leave request `{req['_id']}` "
+    answer = (f"Submitted! Your {req['leave_type']} leave request `{req['_id']}` "
               f"({req['start_date']} → {req['end_date']}, {days_text(req['working_days'])}) is pending review. {note}")
     return {"answer": answer, "leave": {}}
 

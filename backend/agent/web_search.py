@@ -11,7 +11,7 @@ logging.getLogger("google_genai").setLevel(logging.ERROR)
 tavily = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
 
 DISCLAIMER = (
-    "⚠️ This is general information from the web, not official Acme Corp policy. "
+    "This is general information from the web, not official Acme Corp policy. "
     "Please confirm with HR before relying on it."
 )
 

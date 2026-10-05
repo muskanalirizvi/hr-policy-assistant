@@ -2,6 +2,7 @@ import os
 import certifi
 from dotenv import load_dotenv
 from pymongo import MongoClient
+import bcrypt
 
 load_dotenv()
 
@@ -42,9 +43,15 @@ employees = [
     },
 ]
 
+# Demo: sab ka password "demo123". DB mein sirf hash save hota hai, asal password nahi
+DEMO_PASSWORD = "demo123"
+for e in employees:
+    e["password_hash"] = bcrypt.hashpw(DEMO_PASSWORD.encode(), bcrypt.gensalt()).decode()
+
 db.employees.delete_many({}) 
 db.leave_requests.delete_many({})  
 db.employees.insert_many(employees)
+db.employees.create_index("email", unique=True)
 
 print(f"Seeded {db.employees.count_documents({})} employees\n")
 for e in db.employees.find({}, {"name": 1, "status": 1, "leave_balance": 1}):

@@ -15,3 +15,5 @@ tavily-python
 langgraph
 fastapi
 uvicorn
+bcrypt
+pyjwt
