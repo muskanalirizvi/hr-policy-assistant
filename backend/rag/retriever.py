@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from flashrank import Ranker, RerankRequest
 from langchain_qdrant import QdrantVectorStore, RetrievalMode
-from rag.ingest import get_embeddings, get_sparse_embeddings, QDRANT_PATH, COLLECTION
+from rag.ingest import get_embeddings, get_sparse_embeddings, COLLECTION, qdrant_kwargs
 
 load_dotenv()
 
@@ -13,7 +13,7 @@ def get_vector_store():
         embedding=get_embeddings(),
         sparse_embedding=get_sparse_embeddings(),
         retrieval_mode=RetrievalMode.HYBRID,
-        path=QDRANT_PATH,
+        **qdrant_kwargs(),
         collection_name=COLLECTION,
     )
 
@@ -40,10 +40,8 @@ if __name__ == "__main__":
 
     test_questions = [
         "Can I take annual leave during probation?",
-        "How many unused leave days carry over and when do they expire?",
         "Can I work from Dubai for a few weeks?",
         "What is the $300 allowance for?",
-        "What is the legal minimum maternity leave in Pakistan?",
     ]
 
     for q in test_questions:

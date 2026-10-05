@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from dotenv import load_dotenv
 from langchain_text_splitters import MarkdownHeaderTextSplitter
@@ -9,6 +10,17 @@ load_dotenv()
 POLICY_DIR = Path("data/policies")
 QDRANT_PATH = "qdrant_data"
 COLLECTION = "acme_policies"
+
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+
+
+def qdrant_kwargs():
+    """QDRANT_URL ho to Qdrant Cloud, warna local folder."""
+    if QDRANT_URL:
+        return {"url": QDRANT_URL, "api_key": QDRANT_API_KEY, "timeout": 60}
+    return {"path": QDRANT_PATH}
+
 
 splitter = MarkdownHeaderTextSplitter(
     headers_to_split_on=[("#", "policy"), ("##", "section")],
@@ -44,9 +56,10 @@ def ingest():
         embedding=get_embeddings(),
         sparse_embedding=get_sparse_embeddings(),
         retrieval_mode=RetrievalMode.HYBRID,
-        path=QDRANT_PATH,
+        **qdrant_kwargs(),
         collection_name=COLLECTION,
-        force_recreate=True,  # har run pe collection fresh banegi, duplicates nahi aayenge
+        force_recreate=True,  # har run pe collection fresh banegi
+        batch_size=8,         # chhote batches, taake upload timeout na ho
     )
     print(f"Stored {len(chunks)} chunks in '{COLLECTION}'")
 
