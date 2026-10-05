@@ -37,6 +37,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Acme HR Assistant", lifespan=lifespan)
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.getenv("FRONTEND_URL", "http://localhost:3000").split(","),
