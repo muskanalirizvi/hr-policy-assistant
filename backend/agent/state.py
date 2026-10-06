@@ -1,6 +1,6 @@
 from typing import Literal, TypedDict
 
-Intent = Literal["policy", "my_data", "leave_request", "off_topic"]
+Intent = Literal["policy", "my_data", "leave_request", "help", "off_topic"]
 
 
 class AgentState(TypedDict, total=False):

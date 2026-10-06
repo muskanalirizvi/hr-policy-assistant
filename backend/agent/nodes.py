@@ -16,7 +16,7 @@ store = get_vector_store()
 
 # ---------- Router ----------
 class Route(BaseModel):
-    intent: Literal["policy", "my_data", "leave_request", "off_topic"] = Field(
+    intent: Literal["policy", "my_data", "leave_request", "help", "off_topic"] = Field(
         description="Which handler should answer the employee's message"
     )
 
@@ -29,6 +29,8 @@ Classify the employee's message into exactly one intent:
 - my_data: questions about the employee's OWN records: their remaining leave balance, role, manager,
   join date, probation status. Example: "How many annual leaves do I have left?"
 - leave_request: the employee wants to apply for, request or book leave. Example: "I need leave from 19 to 21 Oct"
+- help: questions about this assistant itself: what it can do, how to use it, what to ask,
+  or what it means by terms like "HR records". Example: "What can you help me with?"
 - off_topic: anything unrelated to work or HR. Example: "What's the weather today?"
 
 The message may be in English, Urdu or Roman Urdu.
@@ -194,12 +196,27 @@ async def submit_leave_node(state: AgentState) -> dict:
     return {"answer": answer, "leave": {}}
 
 # ---------- Off topic ----------
-OFF_TOPIC_REPLY = (
-    "I'm Acme Corp's HR assistant, so I can only help with company policies, "
-    "your HR records and leave requests. Is there anything HR-related I can help with?"
-)
+# ---------- Help + Off topic ----------
+CAPABILITIES = """Here's what I can help you with:
+
+**Company policies**
+- Leave rules: annual, sick, casual and parental leave, and carry-over
+- Remote work: hybrid office days, working from abroad, equipment and allowances
+- Benefits: health insurance, learning budget, fitness allowance and bonuses
+
+**Your HR records**
+- Your remaining leave balance (annual, sick, casual)
+- Your role, manager, join date and probation status
+
+**Leave requests**
+- Apply for leave right here, e.g. "I need casual leave on 30 October". I'll check it against the policy and ask you to confirm before sending it to HR.
+
+Try asking: "How many sick leaves do I have left?" or "Can I work from abroad?\""""
+
+
+def help_node(state: AgentState) -> dict:
+    return {"answer": CAPABILITIES, "sources": []}
 
 
 def off_topic_node(state: AgentState) -> dict:
-    return {"answer": OFF_TOPIC_REPLY, "sources": []}
-
+    return {"answer": "That's outside what I can help with. " + CAPABILITIES, "sources": []}

@@ -7,15 +7,15 @@ load_dotenv()
 logging.getLogger("google_genai").setLevel(logging.ERROR) 
 
 
-MIN_SCORE = 0.01  # isse kam score wale chunks bilkul irrelevant hain
+MIN_SCORE = 0.0  
 
 PROMPT = """You are Acme Corp's HR assistant. Answer the question using ONLY the policy excerpts below.
 If the excerpts do not contain the answer, reply with exactly: NOT_IN_POLICY
 
-Rules:
+
 Rules:
 - Be concise, but include the key details from the excerpts (numbers, limits, what each item covers).
-- Cite each policy section only once, e.g. (Leave Policy, 1. Annual Leave).
+- Cite the policy and section once, at the end of the answer, e.g. (Leave Policy, 1. Annual Leave)..
 - Reply in the same language as the question (English, Urdu or Roman Urdu).
 
 Policy excerpts:

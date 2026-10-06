@@ -5,7 +5,7 @@ from langgraph.types import Command
 
 from agent.state import AgentState
 from agent.nodes import (
-    store, router_node, policy_node, web_node, my_data_node, off_topic_node,
+    store, router_node, policy_node, web_node, my_data_node, off_topic_node, help_node,
     leave_extract_node, leave_validate_node, confirm_node, submit_leave_node,
 )
 
@@ -15,6 +15,7 @@ builder.add_node("policy", policy_node)
 builder.add_node("web", web_node)
 builder.add_node("my_data", my_data_node)
 builder.add_node("off_topic", off_topic_node)
+builder.add_node("help", help_node)
 builder.add_node("leave_extract", leave_extract_node)
 builder.add_node("leave_validate", leave_validate_node)
 builder.add_node("confirm", confirm_node)
@@ -25,13 +26,14 @@ builder.add_conditional_edges("router", lambda s: s["intent"], {
     "policy": "policy",
     "my_data": "my_data",
     "leave_request": "leave_extract",
+    "help": "help",
     "off_topic": "off_topic",
 })
 builder.add_conditional_edges("policy", lambda s: "web" if s.get("answer") is None else END)
 builder.add_conditional_edges("leave_extract", lambda s: END if s.get("answer") else "leave_validate")
 builder.add_conditional_edges("leave_validate", lambda s: END if s.get("answer") else "confirm")
 builder.add_conditional_edges("confirm", lambda s: "submit" if s.get("confirmed") else END)
-for node in ["web", "my_data", "off_topic", "submit"]:
+for node in ["web", "my_data", "off_topic", "help", "submit"]:
     builder.add_edge(node, END)
 
 graph = builder.compile(checkpointer=InMemorySaver())
